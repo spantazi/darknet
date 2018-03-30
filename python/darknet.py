@@ -10,15 +10,15 @@ import StringIO
 import urllib
 import shutil
 import base64
-from flask import flask
+from flask import Flask
 from flask import request
 app = Flask(__name__)
 
 net = None
 meta = None
 parser = argparse.ArgumentParser()
-parser.add_argument('--cfg', type=string, default='../cfg/yolov3.cfg', help='Configuration file')
-parser.add_argument('--weigths', type=string, default='../../yolov3.weights', help='Weights file')
+parser.add_argument('--cfg', type=string, default='./cfg/yolov3.cfg', help='Configuration file')
+parser.add_argument('--weights', type=string, default='../yolov3.weights', help='Weights file')
 parser.add_argument('--thresh', type=float, default=.25, help='Threshold')
 args = parser.parse_args()
 
@@ -65,7 +65,7 @@ class METADATA(Structure):
 
 
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
-lib = CDLL("../libdarknet.so", RTLD_GLOBAL)
+lib = CDLL("./libdarknet.so", RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
@@ -186,6 +186,6 @@ def doDetect():
 
 if __name__ == "__main__":
     net = load_net(args.cfg, args.weights, 0)
-    meta = load_meta("../cfg/coco.data")
-    app.run(host='0.0.0.0', port=9000)
-    print 'Started server at http://localhost:9000'
+    meta = load_meta("./cfg/coco.data")
+    app.run(host='0.0.0.0', port=9999)
+    print 'Started server at http://localhost:9999'

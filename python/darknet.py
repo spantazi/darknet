@@ -17,8 +17,8 @@ app = Flask(__name__)
 net = None
 meta = None
 parser = argparse.ArgumentParser()
-parser.add_argument('--cfg', type=string, default='./cfg/yolov3.cfg', help='Configuration file')
-parser.add_argument('--weights', type=string, default='../yolov3.weights', help='Weights file')
+parser.add_argument('--cfg', type=str, default='./cfg/yolov3.cfg', help='Configuration file')
+parser.add_argument('--weights', type=str, default='../yolov3.weights', help='Weights file')
 parser.add_argument('--thresh', type=float, default=.25, help='Threshold')
 args = parser.parse_args()
 

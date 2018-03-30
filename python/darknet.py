@@ -10,6 +10,7 @@ import StringIO
 import urllib
 import shutil
 import base64
+import time
 from flask import Flask
 from flask import request
 app = Flask(__name__)
@@ -175,14 +176,20 @@ def doDetect():
     dataURL = msg['dataURL']
     head = "data:image/jpeg;base64,"
     imgdata = base64.b64decode(dataURL[len(head):])
+    bytes = StringIO.StringIO()
+    bytes.write(imgdata)
     timestr = time.strftime("%Y%m%d-%H%M%S")
     fname = 'tmp_' + timestr + '.jpg'
     with open (fname, 'w') as fd:
-        imgdata.seek(0)
-        shutil.copyfileobj (imgdata, fd)
+        bytes.seek(0)
+        shutil.copyfileobj(bytes, fd)
+    start = time.time()
     r = detect(net, meta, fname, args.thresh)
+    end = time.time()
+    print("Detection time: "),
+    print(end - start)
     os.remove(fname)
-    return r
+    return json.dumps(r)
 
 if __name__ == "__main__":
     net = load_net(args.cfg, args.weights, 0)

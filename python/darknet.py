@@ -1,6 +1,26 @@
 from ctypes import *
+import os
+import sys
 import math
 import random
+import argparse
+import urlparse
+import json
+import StringIO
+import urllib
+import shutil
+import base64
+from flask import flask
+from flask import request
+app = Flask(__name__)
+
+net = None
+meta = None
+parser = argparse.ArgumentParser()
+parser.add_argument('--cfg', type=string, default='../cfg/yolov3.cfg', help='Configuration file')
+parser.add_argument('--weigths', type=string, default='../../yolov3.weights', help='Weights file')
+parser.add_argument('--thresh', type=float, default=.25, help='Threshold')
+args = parser.parse_args()
 
 def sample(probs):
     s = sum(probs)
@@ -42,7 +62,7 @@ class METADATA(Structure):
     _fields_ = [("classes", c_int),
                 ("names", POINTER(c_char_p))]
 
-    
+
 
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
 lib = CDLL("../libdarknet.so", RTLD_GLOBAL)
@@ -141,16 +161,31 @@ def detect(net, meta, image, thresh=.25, hier_thresh=.5, nms=.45):
     free_image(im)
     free_detections(dets, num)
     return res
-    
-if __name__ == "__main__":
-    #net = load_net("cfg/densenet201.cfg", "/home/pjreddie/trained/densenet201.weights", 0)
-    #im = load_image("data/wolf.jpg", 0, 0)
-    #meta = load_meta("cfg/imagenet1k.data")
-    #r = classify(net, meta, im)
-    #print r[:10]
-    net = load_net("cfg/tiny-yolo.cfg", "tiny-yolo.weights", 0)
-    meta = load_meta("cfg/coco.data")
-    r = detect(net, meta, "data/dog.jpg")
-    print r
-    
 
+@app.route("/detect", methods=["POST"])
+def doDetect():
+    print("Detecting...")
+    start = time.time()
+    content_len = int(request.headers['content-length'])
+    post_body = request.get_data().decode('utf-8')
+    end = time.time()
+    print("Bytes read time:"),
+    print(end - start)
+    msg = json.loads(post_body)
+    dataURL = msg['dataURL']
+    head = "data:image/jpeg;base64,"
+    imgdata = base64.b64decode(dataURL[len(head):])
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    fname = 'tmp_' + timestr + '.jpg'
+    with open (fname, 'w') as fd:
+        imgdata.seek(0)
+        shutil.copyfileobj (imgdata, fd)
+    r = detect(net, meta, fname, args.thresh)
+    os.remove(fname)
+    return r
+
+if __name__ == "__main__":
+    net = load_net(args.cfg, args.weights, 0)
+    meta = load_meta("../cfg/coco.data")
+    app.run(host='0.0.0.0', port=9000)
+    print 'Started server at http://localhost:9000'

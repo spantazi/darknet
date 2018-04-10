@@ -208,7 +208,7 @@ if __name__ == "__main__":
     net = load_net(args.cfg, args.weights, 0)
     meta = load_meta("./cfg/coco.data")
     alphabet = load_alphabet()
-    r = detect(net, meta, "/data/test/bank5.jpg")
-    print r
-    #app.run(host='0.0.0.0', port=9999)
-    #print 'Started server at http://localhost:9999'
+    #r = detect(net, meta, "/data/test/bank5.jpg")
+    #print r
+    app.run(host='0.0.0.0', port=9999)
+    print 'Started server at http://localhost:9999'

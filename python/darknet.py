@@ -17,6 +17,7 @@ app = Flask(__name__)
 
 net = None
 meta = None
+alphabet = None
 parser = argparse.ArgumentParser()
 parser.add_argument('--cfg', type=str, default='./cfg/yolov3.cfg', help='Configuration file')
 parser.add_argument('--weights', type=str, default='../yolov3.weights', help='Weights file')
@@ -64,7 +65,6 @@ class METADATA(Structure):
                 ("names", POINTER(c_char_p))]
 
 
-
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
 lib = CDLL("./libdarknet.so", RTLD_GLOBAL)
 lib.network_width.argtypes = [c_void_p]
@@ -82,6 +82,15 @@ set_gpu.argtypes = [c_int]
 make_image = lib.make_image
 make_image.argtypes = [c_int, c_int, c_int]
 make_image.restype = IMAGE
+
+draw_detections = lib.draw_detections
+draw_detections.argtypes = [IMAGE, POINTER(DETECTION), c_int, c_float, (POINTER(c_char_p)), POINTER(POINTER(IMAGE)), c_int]
+
+save_image = lib.save_image
+save_image.argtypes = [IMAGE, POINTER(c_char)]
+
+load_alphabet = lib.load_alphabet
+load_alphabet.restype = POINTER(POINTER(IMAGE))
 
 get_network_boxes = lib.get_network_boxes
 get_network_boxes.argtypes = [c_void_p, c_int, c_int, c_float, c_float, POINTER(c_int), c_int, POINTER(c_int)]
@@ -150,7 +159,8 @@ def detect(net, meta, image, thresh=.25, hier_thresh=.5, nms=.45):
     predict_image(net, im)
     dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, None, 0, pnum)
     num = pnum[0]
-    if (nms): do_nms_obj(dets, num, meta.classes, nms);
+    #if (nms): do_nms_obj(dets, num, meta.classes, nms)
+    if (nms): do_nms_sort(dets, num, meta.classes, nms)
 
     res = []
     for j in range(num):
@@ -159,8 +169,11 @@ def detect(net, meta, image, thresh=.25, hier_thresh=.5, nms=.45):
                 b = dets[j].bbox
                 res.append((meta.names[i], dets[j].prob[i], (b.x, b.y, b.w, b.h)))
     res = sorted(res, key=lambda x: -x[1])
-    free_image(im)
+
+    draw_detections(im, dets, num, thresh, meta.names, alphabet, meta.classes) #net.value.layers[net.value.n - 1])
     free_detections(dets, num)
+    save_image(im, "predictions")
+    free_image(im)
     return res
 
 @app.route("/detect", methods=["POST"])
@@ -194,5 +207,8 @@ def doDetect():
 if __name__ == "__main__":
     net = load_net(args.cfg, args.weights, 0)
     meta = load_meta("./cfg/coco.data")
-    app.run(host='0.0.0.0', port=9999)
-    print 'Started server at http://localhost:9999'
+    alphabet = load_alphabet()
+    r = detect(net, meta, "/data/test/bank5.jpg")
+    print r
+    #app.run(host='0.0.0.0', port=9999)
+    #print 'Started server at http://localhost:9999'
